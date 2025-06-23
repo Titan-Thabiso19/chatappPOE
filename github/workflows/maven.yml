@@ -21,5 +21,4 @@ jobs:
         distribution: 'temurin'
 
     - name: Build with Maven
-      run: mvn -B clean verify
-      # no working-directory since pom.xml is at repo root
+      run: mvn -B package
