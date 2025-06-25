@@ -86,7 +86,7 @@ public class PROGtestcodeproject {
 
             if (ReturnLoginStatus(registeredUser, registeredPass, loginUser, loginPass)) {
                 JOptionPane.showMessageDialog(null, "✅ Login successful!");
-                Messages.showMenu(name, surname); // Moves to Part 2
+                Messages.showMenu(name, surname); // This calls the menu in Messages.java
                 return;
             } else {
                 JOptionPane.showMessageDialog(null, "❌ Login failed. Attempts remaining: " + attempts);

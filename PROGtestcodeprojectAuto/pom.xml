@@ -43,4 +43,5 @@
         <maven.compiler.release>21</maven.compiler.release>
         <exec.mainClass>com.mycompany.progtestcodeproject.PROGtestcodeproject</exec.mainClass>
     </properties>
+    <name>PROGPOEApp</name>
 </project>

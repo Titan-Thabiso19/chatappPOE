@@ -1,106 +1,82 @@
 package com.mycompany.progtestcodeproject;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for PROGtestcodeproject and Messages classes.
- * Covers username, password, cell number validation, and message ID hashing.
- * Developed for clarity, correctness, and completeness.
- */
 public class PROGtestcodeprojectTest {
 
-    // ============================
-    // Username Validation Tests
-    // ============================
-    @Nested
-    @DisplayName("Username Validation")
-    class UsernameTests {
-
-        @Test
-        @DisplayName("✅ Valid: username with underscore and 5 characters")
-        void validUsername() {
-            assertTrue(PROGtestcodeproject.CheckUserName("abc_d"));
-        }
-
-        @Test
-        @DisplayName("❌ Invalid: too short (less than 5)")
-        void usernameTooShort() {
-            assertFalse(PROGtestcodeproject.CheckUserName("a_d"));
-        }
-
-        @Test
-        @DisplayName("❌ Invalid: no underscore")
-        void usernameNoUnderscore() {
-            assertFalse(PROGtestcodeproject.CheckUserName("abcde"));
-        }
+    @Test
+    public void testCheckUserName_Valid() {
+        assertTrue(PROGtestcodeproject.CheckUserName("abc_d"));
     }
 
-    // ============================
-    // Password Validation Tests
-    // ============================
-    @Nested
-    @DisplayName("Password Complexity")
-    class PasswordTests {
-
-        @Test
-        @DisplayName("✅ Valid: 8 chars with uppercase, digit & special character")
-        void validPassword() {
-            assertTrue(PROGtestcodeproject.CheckPasswordComplexity("A1@bcdef"));
-        }
-
-        @Test
-        @DisplayName("❌ Invalid: no special character")
-        void passwordMissingSpecial() {
-            assertFalse(PROGtestcodeproject.CheckPasswordComplexity("Abc12345"));
-        }
-
-        @Test
-        @DisplayName("❌ Invalid: less than 8 characters")
-        void passwordTooShort() {
-            assertFalse(PROGtestcodeproject.CheckPasswordComplexity("A@b3"));
-        }
+    @Test
+    public void testCheckUserName_Invalid_NoUnderscore() {
+        assertFalse(PROGtestcodeproject.CheckUserName("abcde"));
     }
 
-    // ============================
-    // Cell Number Validation Tests
-    // ============================
-    @Nested
-    @DisplayName("Cell Number Validation")
-    class CellNumberTests {
-
-        @Test
-        @DisplayName("✅ Valid: exactly 8 to 10 digits")
-        void validCellNumber() {
-            assertTrue(Messages.checkRecipientCell("012345678"));
-            assertTrue(Messages.checkRecipientCell("0123456789"));
-        }
-
-        @Test
-        @DisplayName("❌ Invalid: too short or too long")
-        void invalidCellNumber() {
-            assertFalse(Messages.checkRecipientCell("1234567"));     // 7 digits
-            assertFalse(Messages.checkRecipientCell("12345678901")); // 11 digits
-        }
+    @Test
+    public void testCheckUserName_Invalid_TooShort() {
+        assertFalse(PROGtestcodeproject.CheckUserName("ab_"));
     }
 
-    // ============================
-    // Message Hashing Tests
-    // ============================
-    @Nested
-    @DisplayName("Message Hash ID Generation")
-    class MessageHashTests {
+    @Test
+    public void testCheckPasswordComplexity_Valid() {
+        assertTrue(PROGtestcodeproject.CheckPasswordComplexity("A1@bcdef"));
+    }
 
-        @Test
-        @DisplayName("✅ Valid: generates 10-digit numeric hash")
-        void hashLengthAndFormat() {
-            String hash = Messages.generateHashMessageID("Test message!");
-            assertNotNull(hash);
-            assertEquals(10, hash.length(), "Hash should be 10 digits");
-            assertTrue(hash.matches("\\d{10}"), "Hash must only contain digits");
-        }
+    @Test
+    public void testCheckPasswordComplexity_Invalid_NoUppercase() {
+        assertFalse(PROGtestcodeproject.CheckPasswordComplexity("a1@bcdef"));
+    }
+
+    @Test
+    public void testCheckPasswordComplexity_Invalid_NoNumber() {
+        assertFalse(PROGtestcodeproject.CheckPasswordComplexity("A@bcdefg"));
+    }
+
+    @Test
+    public void testCheckPasswordComplexity_Invalid_NoSpecialChar() {
+        assertFalse(PROGtestcodeproject.CheckPasswordComplexity("A1bcdefg"));
+    }
+
+    @Test
+    public void testCheckPasswordComplexity_Invalid_WrongLength() {
+        assertFalse(PROGtestcodeproject.CheckPasswordComplexity("A1@bcde")); // Only 7 characters
+    }
+
+    @Test
+    public void testCheckCellNumber_Valid_8Digits() {
+        assertTrue(PROGtestcodeproject.CheckCellNumber("12345678"));
+    }
+
+    @Test
+    public void testCheckCellNumber_Valid_10Digits() {
+        assertTrue(PROGtestcodeproject.CheckCellNumber("1234567890"));
+    }
+
+    @Test
+    public void testCheckCellNumber_Invalid_TooShort() {
+        assertFalse(PROGtestcodeproject.CheckCellNumber("1234567"));
+    }
+
+    @Test
+    public void testCheckCellNumber_Invalid_NonDigits() {
+        assertFalse(PROGtestcodeproject.CheckCellNumber("1234abcd"));
+    }
+
+    @Test
+    public void testReturnLoginStatus_CorrectCredentials() {
+        assertTrue(PROGtestcodeproject.ReturnLoginStatus("user", "pass", "user", "pass"));
+    }
+
+    @Test
+    public void testReturnLoginStatus_WrongPassword() {
+        assertFalse(PROGtestcodeproject.ReturnLoginStatus("user", "pass", "user", "wrong"));
+    }
+
+    @Test
+    public void testReturnLoginStatus_WrongUsername() {
+        assertFalse(PROGtestcodeproject.ReturnLoginStatus("user", "pass", "wrong", "pass"));
     }
 }

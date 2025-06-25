@@ -2,13 +2,7 @@ package com.mycompany.progtestcodeproject;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-
-import javax.swing.*;
-import java.io.FileWriter;
-import java.io.IOException;
+import javax.swing.JOptionPane;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -16,214 +10,242 @@ import java.util.List;
 
 public class Messages {
 
-    private static ArrayList<String> messageStore = new ArrayList<>();
-    private static ArrayList<Contact> savedRecipients = new ArrayList<>();
+    // Inner Message class
+    public static class Message {
+        private String sender;
+        private String recipient;
+        private String content;
+        private String messageId;
+        private String messageHash;
 
-    // Internal class for contact storage
-    private static class Contact {
-        String name;
-        String number;
-
-        Contact(String name, String number) {
-            this.name = name;
-            this.number = number;
+        public Message(String sender, String recipient, String content) {
+            this.sender = sender;
+            this.recipient = recipient;
+            this.content = content;
+            this.messageId = generateHashMessageID(content);
+            this.messageHash = generateMessageHash(content);
         }
 
-        @Override
-        public String toString() {
-            return name + " - " + number;
+        public String getSender() {
+            return sender;
         }
-    }
 
-    public static void showMenu(String senderName, String senderSurname) {
-        while (true) {
-            String[] options = {"1. Send Message", "2. Review Messages", "3. Export Stored", "4. Exit"};
+        public String getRecipient() {
+            return recipient;
+        }
 
-            int choice = JOptionPane.showOptionDialog(
-                    null,
-                    "📨 Messaging Menu\n" +
-                    "Messages Sent: " + totalMessagesSent() + "\n\nChoose an option:",
-                    "Messaging System",
-                    JOptionPane.DEFAULT_OPTION,
-                    JOptionPane.PLAIN_MESSAGE,
-                    null,
-                    options,
-                    options[0]
-            );
+        public String getContent() {
+            return content;
+        }
 
-            switch (choice) {
-                case 0:
-                    sendMessage(senderName, senderSurname);
-                    break;
-                case 1:
-                    JOptionPane.showMessageDialog(null, "🛠️ Review feature coming soon!");
-                    break;
-                case 2:
-                    saveStoredMessagesToJsonFile();
-                    break;
-                case 3:
-                    JOptionPane.showMessageDialog(null, "👋 Goodbye!");
-                    System.exit(0);
-                    break;
-                default:
-                    return;
-            }
+        public String getMessageId() {
+            return messageId;
+        }
+
+        public String getMessageHash() {
+            return messageHash;
         }
     }
 
-    private static void sendMessage(String senderName, String senderSurname) {
-        String recipientName;
-        String recipientCell;
+    // Lists for storing messages
+    private final List<Message> sentMessages = new ArrayList<>();
+    private final List<Message> discardedMessages = new ArrayList<>();
+    private final List<Message> storedMessages = new ArrayList<>();
 
-        String[] recipientOptions = {"Enter New Contact", "Choose Saved Contact"};
-        int inputOption = JOptionPane.showOptionDialog(
-                null,
-                "📇 Choose how to select the recipient:",
-                "Recipient Selection",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                recipientOptions,
-                recipientOptions[0]
-        );
+    // Add a message to sent messages and stored messages
+    public void addSentMessage(String sender, String recipient, String content) {
+        Message message = new Message(sender, recipient, content);
+        sentMessages.add(message);
+        storedMessages.add(message);
+        JOptionPane.showMessageDialog(null, "✅ Message sent and stored successfully!");
+    }
 
-        if (inputOption == 0) {
-            recipientName = JOptionPane.showInputDialog("Enter recipient's name:");
-            recipientCell = JOptionPane.showInputDialog("Enter recipient's number:");
-
-            if (recipientName == null || recipientCell == null) return;
-
-            if (!checkRecipientCell(recipientCell)) {
-                JOptionPane.showMessageDialog(null, "❌ Invalid number. Must be 8–10 digits.");
-                return;
+    // Discard a message by hash and move it to discardedMessages
+    public boolean discardMessageByHash(String hash) {
+        for (Message msg : new ArrayList<>(storedMessages)) {
+            if (msg.getMessageHash().equals(hash)) {
+                storedMessages.remove(msg);
+                discardedMessages.add(msg);
+                JOptionPane.showMessageDialog(null, "🗑️ Message discarded successfully.");
+                return true;
             }
+        }
+        JOptionPane.showMessageDialog(null, "❌ No message found with that hash.");
+        return false;
+    }
 
-            final String number = recipientCell.trim();
-            if (savedRecipients.stream().noneMatch(c -> c.number.equals(number))) {
-                savedRecipients.add(new Contact(recipientName.trim(), number));
-            }
-        } else if (inputOption == 1) {
-            if (savedRecipients.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "⚠️ No saved contacts.");
-                return;
-            }
+    // Display sender and recipient of all messages
+    public void displayAllSendersAndRecipients() {
+        StringBuilder sb = new StringBuilder("📨 Sender and Recipient of all stored messages:\n");
+        for (Message msg : storedMessages) {
+            sb.append(String.format("From: %s ➡️ To: %s%n", msg.getSender(), msg.getRecipient()));
+        }
+        JOptionPane.showMessageDialog(null, sb.toString());
+    }
 
-            Contact selected = (Contact) JOptionPane.showInputDialog(
-                    null,
-                    "📞 Select a contact:",
-                    "Contacts",
-                    JOptionPane.PLAIN_MESSAGE,
-                    null,
-                    savedRecipients.toArray(),
-                    savedRecipients.get(0)
-            );
-            if (selected == null) return;
-
-            recipientName = selected.name;
-            recipientCell = selected.number;
-        } else {
+    // Display the longest sent message content
+    public void displayLongestSentMessage() {
+        if (sentMessages.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "⚠️ No sent messages available.");
             return;
         }
-
-        String messageContent = JOptionPane.showInputDialog("✉️ Type your message (Max 250 letters):");
-        if (messageContent == null || messageContent.trim().isEmpty()) return;
-        if (messageContent.length() > 250) {
-            JOptionPane.showMessageDialog(null, "⚠️ Message too long. Max 250 letters.");
-            return;
-        }
-
-        String messageID = generateHashMessageID(messageContent);
-        JOptionPane.showMessageDialog(null, "🆔 Message ID: " + messageID);
-
-        String[] actionOptions = {"Send", "Store", "Discard"};
-        int action = JOptionPane.showOptionDialog(
-                null,
-                "📦 What would you like to do with the message?",
-                "Message Action",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                actionOptions,
-                actionOptions[0]
-        );
-
-        if (action == 0) {
-            String formatted = "[SENT]\nTo: " + recipientName + " (" + recipientCell + ")\nFrom: " + senderName + " " + senderSurname +
-                    "\nMessage ID: " + messageID + "\nMessage: " + messageContent;
-            messageStore.add(formatted);
-            JOptionPane.showMessageDialog(null, "✅ Message sent!");
-        } else if (action == 1) {
-            String json = "{\n  \"id\": \"" + messageID + "\",\n  \"recipient\": \"" + recipientName + " (" + recipientCell + ")\",\n  \"sender\": \"" + senderName + " " + senderSurname + "\",\n  \"content\": \"" + messageContent + "\"\n}";
-            messageStore.add("[STORED] " + json);
-            JOptionPane.showMessageDialog(null, "📦 Message stored.");
-        } else {
-            JOptionPane.showMessageDialog(null, "🗑️ Message discarded.");
-        }
-    }
-
-    public static boolean checkRecipientCell(String number) {
-        return number.matches("\\d{8,10}");
-    }
-
-    public static int totalMessagesSent() {
-        int count = 0;
-        for (String msg : messageStore) {
-            if (msg.startsWith("[SENT]") && msg.contains("Message ID:")) {
-                count++;
+        Message longest = sentMessages.get(0);
+        for (Message msg : sentMessages) {
+            if (msg.getContent().length() > longest.getContent().length()) {
+                longest = msg;
             }
         }
-        return count;
+        String output = String.format("📏 Longest sent message:\nFrom: %s\nTo: %s\nMessage: %s",
+                longest.getSender(), longest.getRecipient(), longest.getContent());
+        JOptionPane.showMessageDialog(null, output);
     }
 
+    // Search message by ID and display recipient and message content
+    public void searchByMessageId(String messageId) {
+        for (Message msg : storedMessages) {
+            if (msg.getMessageId().equals(messageId)) {
+                String output = String.format("🔍 Message found:\nRecipient: %s\nContent: %s",
+                        msg.getRecipient(), msg.getContent());
+                JOptionPane.showMessageDialog(null, output);
+                return;
+            }
+        }
+        JOptionPane.showMessageDialog(null, "❌ No message found with that Message ID.");
+    }
+
+    // Search messages sent to a particular recipient
+    public void searchMessagesByRecipient(String recipient) {
+        StringBuilder sb = new StringBuilder(String.format("📋 Messages sent to %s:\n", recipient));
+        boolean found = false;
+        for (Message msg : storedMessages) {
+            if (msg.getRecipient().equalsIgnoreCase(recipient)) {
+                sb.append(String.format("From: %s, Message: %s%n", msg.getSender(), msg.getContent()));
+                found = true;
+            }
+        }
+        if (!found) {
+            JOptionPane.showMessageDialog(null, "❌ No messages found for that recipient.");
+        } else {
+            JOptionPane.showMessageDialog(null, sb.toString());
+        }
+    }
+
+    // Hashing methods
     public static String generateHashMessageID(String content) {
+        // For simplicity: use first 8 chars of SHA-256 hash as message ID
+        return generateSHA256Hash(content).substring(0, 8);
+    }
+
+    public static String generateMessageHash(String content) {
+        return generateSHA256Hash(content);
+    }
+
+    private static String generateSHA256Hash(String input) {
         try {
-            String input = content + System.currentTimeMillis();
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(input.getBytes());
-
             StringBuilder hexString = new StringBuilder();
             for (byte b : hashBytes) {
                 hexString.append(String.format("%02x", b));
             }
-
-            String numericOnly = hexString.toString().replaceAll("[^0-9]", "");
-            if (numericOnly.length() < 10) {
-                numericOnly = String.format("%-10s", numericOnly).replace(' ', '0');
-            }
-
-            return numericOnly.substring(0, 10);
+            return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
-            return "0000000000";
+            throw new RuntimeException("SHA-256 algorithm not found");
         }
     }
 
-    // ✅ Export to JSON File Method
-    public static void saveStoredMessagesToJsonFile() {
-        List<JsonObject> storedMessages = new ArrayList<>();
+    // Optional: method to export stored messages to JSON string
+    public String exportStoredMessagesToJson() {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(storedMessages);
+    }
 
-        for (String msg : messageStore) {
-            if (msg.startsWith("[STORED]")) {
-                String jsonString = msg.replaceFirst("\\[STORED\\]\\s*", "");
-                try {
-                    JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
-                    storedMessages.add(json);
-                } catch (JsonSyntaxException e) {
-                    System.err.println("❌ Skipped invalid JSON: " + e.getMessage());
-                }
+    // The interactive menu to use after login
+    public static void showMenu(String name, String surname) {
+        Messages messages = new Messages();
+
+        while (true) {
+            String choice = JOptionPane.showInputDialog(
+                    "📋 Select an option:\n" +
+                    "1. Send a Message\n" +
+                    "2. Display All Sender/Recipients\n" +
+                    "3. Display Longest Sent Message\n" +
+                    "4. Search by Message ID\n" +
+                    "5. Search Messages by Recipient\n" +
+                    "6. Discard a Message by Hash\n" +
+                    "7. Export Messages to JSON\n" +
+                    "0. Exit"
+            );
+
+            if (choice == null || choice.equals("0")) {
+                JOptionPane.showMessageDialog(null, "👋 Exiting. Goodbye!");
+                break;
             }
-        }
 
-        if (storedMessages.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "⚠️ No stored messages to export.");
-            return;
-        }
+            switch (choice) {
+                case "1":
+                    String recipient = JOptionPane.showInputDialog("Enter recipient name:");
+                    if (recipient == null || recipient.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "❌ Recipient name cannot be empty.");
+                        break;
+                    }
+                    String cell = JOptionPane.showInputDialog("Enter recipient number:");
+                    if (cell == null || cell.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "❌ Recipient number cannot be empty.");
+                        break;
+                    }
+                    String content = JOptionPane.showInputDialog("Enter your message:");
+                    if (content == null || content.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "❌ Message content cannot be empty.");
+                        break;
+                    }
+                    messages.addSentMessage(name + " " + surname, recipient, content);
+                    break;
 
-        try (FileWriter writer = new FileWriter("stored_messages.json")) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(storedMessages, writer);
-            JOptionPane.showMessageDialog(null, "✅ Stored messages saved to 'stored_messages.json'");
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "❌ Failed to save file: " + e.getMessage());
+                case "2":
+                    messages.displayAllSendersAndRecipients();
+                    break;
+
+                case "3":
+                    messages.displayLongestSentMessage();
+                    break;
+
+                case "4":
+                    String id = JOptionPane.showInputDialog("Enter message ID:");
+                    if (id == null || id.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "❌ Message ID cannot be empty.");
+                        break;
+                    }
+                    messages.searchByMessageId(id);
+                    break;
+
+                case "5":
+                    String recipientSearch = JOptionPane.showInputDialog("Enter recipient name:");
+                    if (recipientSearch == null || recipientSearch.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "❌ Recipient name cannot be empty.");
+                        break;
+                    }
+                    messages.searchMessagesByRecipient(recipientSearch);
+                    break;
+
+                case "6":
+                    String hash = JOptionPane.showInputDialog("Enter message hash to discard:");
+                    if (hash == null || hash.trim().isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "❌ Hash cannot be empty.");
+                        break;
+                    }
+                    messages.discardMessageByHash(hash);
+                    break;
+
+                case "7":
+                    String json = messages.exportStoredMessagesToJson();
+                    JOptionPane.showMessageDialog(null, "📤 Exported Messages:\n" + json);
+                    break;
+
+                default:
+                    JOptionPane.showMessageDialog(null, "❌ Invalid choice.");
+                    break;
+            }
         }
     }
 }
